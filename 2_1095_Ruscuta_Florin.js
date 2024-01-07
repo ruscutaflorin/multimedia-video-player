@@ -1,5 +1,6 @@
 const canvas = document.getElementById("my-canvas");
 const context = canvas.getContext("2d");
+canvas.willReadFrequently = true;
 const playlistContainer = document.querySelector("#playlist ul");
 let playlistItems = document.querySelectorAll("#playlist ul li");
 const prevButton = document.getElementById("prev-button");
@@ -69,14 +70,15 @@ function applyColorAdjustment() {
 
 const instructionsButton = document.getElementById("instructions-button");
 const instructionsModal = document.getElementById("instructionsModal");
+const instructionsModalClosingButton = document.getElementById("close-button");
 
 instructionsButton.addEventListener("click", () => {
   instructionsModal.style.display = "block";
 });
 
-function closeModal() {
+instructionsModalClosingButton.addEventListener("click", () => {
   instructionsModal.style.display = "none";
-}
+});
 
 const dynamicVideo = document.createElement("video");
 dynamicVideo.style.display = "none";
@@ -108,8 +110,6 @@ canvas.addEventListener("mouseup", handleCanvasClick);
 const fileInput = document.getElementById("movie-input");
 fileInput.addEventListener("change", handleFileInputChange);
 
-instructionsButton.addEventListener("click", () => instructionsModal.show());
-
 playlistItems.forEach((item) => {
   const deleteButton = createDeleteButton();
   item.appendChild(deleteButton);
@@ -121,7 +121,6 @@ loadVideo(currentVideoIndex);
 function drawVideo() {
   context.drawImage(dynamicVideo, 0, 0, canvas.width, canvas.height);
   applyColorAdjustment();
-  // drawControls(); // Assuming drawControls function contains the progress bar drawing
 }
 
 function drawControls() {
@@ -165,43 +164,45 @@ function drawControls() {
 }
 
 function loadVideo(index) {
-  currentVideoIndex = index;
-  const videoSource = playlistItems[index].getAttribute("data-video");
-  dynamicVideo.src = videoSource;
-  dynamicVideo.load();
-  canvas.style.display = "none";
+  if (playlistItems[index]) {
+    currentVideoIndex = index;
+    const videoSource = playlistItems[index].getAttribute("data-video");
+    dynamicVideo.src = videoSource;
+    dynamicVideo.load();
+    canvas.style.display = "none";
 
-  increaseBlue.style.display = "none";
-  increaseGreen.style.display = "none";
-  increaseRed.style.display = "none";
-  decreaseBlue.style.display = "none";
-  decreaseRed.style.display = "none";
-  decreaseGreen.style.display = "none";
-  resetColors.style.display = "none";
+    increaseBlue.style.display = "none";
+    increaseGreen.style.display = "none";
+    increaseRed.style.display = "none";
+    decreaseBlue.style.display = "none";
+    decreaseRed.style.display = "none";
+    decreaseGreen.style.display = "none";
+    resetColors.style.display = "none";
 
-  document.addEventListener("click", () => {
-    dynamicVideo
-      .play()
-      .then(() => {
-        canvas.style.display = "block";
-        increaseBlue.style.display = "block";
-        increaseGreen.style.display = "block";
-        increaseRed.style.display = "block";
-        decreaseBlue.style.display = "block";
-        decreaseRed.style.display = "block";
-        decreaseGreen.style.display = "block";
-        resetColors.style.display = "block";
-      })
-      .catch((error) =>
-        console.error("Failed to play the video:", error.message)
-      );
-  });
+    document.addEventListener("click", () => {
+      dynamicVideo
+        .play()
+        .then(() => {
+          canvas.style.display = "block";
+          increaseBlue.style.display = "block";
+          increaseGreen.style.display = "block";
+          increaseRed.style.display = "block";
+          decreaseBlue.style.display = "block";
+          decreaseRed.style.display = "block";
+          decreaseGreen.style.display = "block";
+          resetColors.style.display = "block";
+        })
+        .catch((error) =>
+          console.error("Failed to play the video:", error.message)
+        );
+    });
 
-  dynamicVideo.addEventListener("ended", () => {
-    currentVideoIndex = (currentVideoIndex + 1) % playlistItems.length;
-    loadVideo(currentVideoIndex - 1);
-    setTimeout(() => dynamicVideo.click(), 1000);
-  });
+    dynamicVideo.addEventListener("ended", () => {
+      currentVideoIndex = (currentVideoIndex + 1) % playlistItems.length;
+      loadVideo(currentVideoIndex - 1);
+      setTimeout(() => dynamicVideo.click(), 1000);
+    });
+  }
 }
 
 function handleFileInputChange(event) {
@@ -241,7 +242,7 @@ function createVideoPreview(videoSource) {
   videoPreview.preload = "metadata";
   return videoPreview;
 }
-// todo: asta e de 2 ori si aici si la linia 268
+
 function addPlaylistItemEventListeners(item) {
   const deleteButton = item.querySelector(".delete-button");
   deleteButton.addEventListener("click", () => {
@@ -272,8 +273,10 @@ function updatePlaylistItems() {
     item.addEventListener("click", () => loadVideo(index));
 
     deleteButton.addEventListener("click", () => {
-      playlistContainer.removeChild(item);
-      updatePlaylistItems();
+      if (playlistContainer.contains(item)) {
+        playlistContainer.removeChild(item);
+        updatePlaylistItems();
+      }
     });
   });
 }
